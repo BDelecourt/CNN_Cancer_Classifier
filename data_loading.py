@@ -7,9 +7,6 @@ from PIL import Image
 # Define dataset path
 dataset_path = "Dataset_BUSI_with_GT"
 
-# Define categories
-categories = ["benign", "malignant", "normal"]
-
 # Image transformations: Resize to 224x224, normalize, and convert to tensor
 transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),  # Ensure 1-channel grayscale
@@ -24,12 +21,18 @@ class BreastCancerDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
         self.data = []
-        
-        for label, category in enumerate(categories):
-            category_path = os.path.join(root_dir, category)
+
+        # Define categories
+        self.class_map = {"benign": 0, "malignant": 1, "normal": 2}
+
+        # Label all data
+        for label_name in self.class_map.keys():  
+            category_path = os.path.join(root_dir, label_name)
             for img_name in os.listdir(category_path):
+                if "mask" in img_name:  # Skip mask images
+                    continue
                 img_path = os.path.join(category_path, img_name)
-                self.data.append((img_path, label))
+                self.data.append((img_path, label_name))
     
     def __len__(self):
         return len(self.data)
@@ -43,15 +46,22 @@ class BreastCancerDataset(Dataset):
         
         return image, label
 
+def split_dataset(dataset,train=0.8,val=0.1):
+    "Split dataset into train (80%), validation (10%), test (10%)"
+    if train+val>=1:
+        raise Exception("Incorrect dataset repartition") # does not allow test dataset
+    train_size = int(train * len(dataset))
+    val_size = int(val * len(dataset))
+    test_size = len(dataset) - train_size - val_size
+    train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, val_size, test_size])
+    return train_dataset, val_dataset, test_dataset
+
+
 # Create dataset instance
 dataset = BreastCancerDataset(root_dir=dataset_path, transform=transform)
 print(f"Dataset size: {len(dataset)} items")
-# Split into train (80%), validation (10%), test (10%)
-train_size = int(0.8 * len(dataset))
-val_size = int(0.1 * len(dataset))
-test_size = len(dataset) - train_size - val_size
 
-train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, val_size, test_size])
+train_dataset, val_dataset, test_dataset=split_dataset(dataset)
 
 # Create DataLoaders
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
@@ -65,5 +75,5 @@ print(f"Train samples: {len(train_dataset)}, Validation samples: {len(val_datase
 images, labels = next(iter(train_loader))
 
 print(images.shape)  # Should be (16, 1, 224, 224) for grayscale images
-print(labels)  # labels (0, 1, or 2)
+print(labels)  # labels ('normal', 'malignant', 'benign')
 print(images.min(), images.max())  # Should be around -1 to 1 (normalized)
