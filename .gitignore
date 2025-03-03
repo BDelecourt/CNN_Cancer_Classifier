@@ -1,2 +1,5 @@
 CNN_venv
 Dataset_BUSI_with_GT
+breast_cancer_cnn.pth
+__pycache__
+dataset_splits.pth

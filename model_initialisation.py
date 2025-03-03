@@ -30,11 +30,3 @@ class BreastCancerCNN(nn.Module):
         x = self.fc2(x)  # Fully connected 2 (output)
         
         return x
-
-# Create the model
-model = BreastCancerCNN(num_classes=3)
-
-# Check model output shape
-sample_input = torch.randn(1, 1, 224, 224)  # 1 random grayscale image, size 224x224
-output = model(sample_input)
-print(output.shape)  # Expected output: torch.Size([1, 3])
