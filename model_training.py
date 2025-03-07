@@ -4,6 +4,7 @@ import torch.optim as optim
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from torchvision import transforms
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchinfo import summary
 from torch.utils.data import Subset
 from torch.utils.data import DataLoader
@@ -53,6 +54,9 @@ criterion = nn.CrossEntropyLoss()
 
 # Define Optimizer (Adam is a popular choice for CNNs)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# Define scheduler to reduce LR if validation loss plateaus
+scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, verbose=True)
 
 if os.path.exists("breast_cancer_cnn.pth"): #Load already trained model
     checkpoint = torch.load("breast_cancer_cnn.pth")  # Load the full checkpoint
@@ -118,8 +122,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
         val_losses.append(avg_val_loss)
         train_accs.append(train_acc)
         val_accs.append(val_acc)
-
         print(f"Epoch {epoch+1}/{num_epochs} - Train Loss: {avg_train_loss:.4f} - Val Loss: {avg_val_loss:.4f} - Train Acc: {train_acc:.4f} - Val Acc: {val_acc:.4f}")
+        # Define scheduler to reduce LR if validation loss plateaus
+        scheduler.step(val_loss)
 
     return train_losses, val_losses, train_accs, val_accs
 
